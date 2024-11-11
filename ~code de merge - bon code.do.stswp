@@ -2,7 +2,7 @@
 				// 1. Définition les chemins de base et le répertoire de sortie
 				
 local root_dir "C:\Users\AHema\OneDrive - CGIAR\Desktop\Cours\2025\ENSAE\GT ISE 3 ENSAE\00_Data\00_INPUTS"  
-local output_dir "C:\Users\AHema\OneDrive - CGIAR\Desktop\Cours\2025\ENSAE\GT ISE 3 ENSAE\00_Data\00_INPUTS\00_EHCVM" 
+local output_dir "C:\Users\AHema\OneDrive - CGIAR\Desktop\Cours\2025\ENSAE\GT ISE 3 ENSAE\00_Data\01_OUTPUTS\00_EHCVM" 
 		****************************************************************
 	cd "`root_dir'/03_SHAPEFILES"
     local folders : dir . dirs "*"
