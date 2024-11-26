@@ -1,6 +1,6 @@
 		***************************************************************************
 				// 1. Définition les chemins de base et le répertoire de sortie
-				
+clear all			
 local root_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/00_INPUTS"  
 local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/01_OUTPUTS/00_EHCVM"  
 		****************************************************************
@@ -26,18 +26,27 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 				save `hdx_data', replace
 
 				// Harmoniser les variables clés dans la base Excel importée
-			 
+				local pays_HDX "bfa ner civ"
+				local pays_GADM "sen"
+				if strpos("`pays_HDX'","`ref_code_excel'"){
 				gen commune_clean = lower(ADM3_FR)   // pour cle de commune
-				gen departement_clean = lower(ADM2_FR) // pour cle de departement
-				gen region_clean = lower(ADM1_FR)  //  pour cle de region
-				
-				local var_list_clean  commune_clean departement_clean region_clean
+					gen departement_clean = lower(ADM2_FR) // pour cle de departement
+					gen region_clean = lower(ADM1_FR)  //  pour cle de region
+				}
+				if strpos("`pays_GADM'","`ref_code_excel'"){
+				gen commune_clean = lower(NAME_4)   // pour cle de commune
+					gen departement_clean = lower(NAME_2) // pour cle de departement
+					gen region_clean = lower(NAME_1)  //  pour cle de region
+				}
+							
+				local var_list_clean commune_clean departement_clean region_clean
 										
 				foreach var of local var_list_clean {
 				
 						// Remplacons tous les tirets(de 6 et de 8), parenthèses, et autres caractères spéciaux
 						replace `var' = regexr(`var', "-", " ")
 						replace `var' = regexr(`var', "_", " ")
+						replace `var' = ustrregexra(`var', "['?/!’]", " ")
 						
 						// Supprimons les accents dans les variables _clean
 						replace `var' = ustrregexra(`var', "[éèêë]", "e")
@@ -58,6 +67,21 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 						replace `var' =subinstr(`var', "'", "", .)
 						replace `var'=subinstr(`var', " ", "", .)
 						
+						// Extraction les noms de commune, département et région sans les informations entre parenthèses
+						* Identifions la position de la parenthèse ouvrante
+						gen pos_paren`var' = strpos(`var', "(")
+						
+						* Gardons uniquement le texte avant la parenthèse ouvrante, si elle existe
+						replace `var' = substr(`var', 1, pos_paren`var' - 1) if pos_paren`var' > 0
+						
+						* Supprimons les espaces et  apostrophes en trop
+						replace `var' =subinstr(`var', "'", "", .)
+				
+						replace `var' =subinstr(`var', " ", "", .)
+						
+						// Supprimons la variable temporaire utilisée pour la position de la parenthèse
+						drop pos_paren`var'
+
 				}
 				
 				
@@ -95,29 +119,84 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 										tempfile individu_data
 										save `individu_data', replace
 										
-										** Recherchons  les variables contenant "commune, departement, region" et renommer
+										** Recherchons  les variables clés et renommons les
 										
-										foreach var of varlist _all {
-											if strpos("`var'", "commune") > 0 {
-												rename `var' commune
+										////////
+										if "`ref_code_excel'" == "bfa" {
+											foreach var of varlist _all {
+												if strpos("`var'", "commune") > 0 {
+													clonevar comm=`var'
+												}
+											}
+										
+											foreach var of varlist _all {
+												if strpos("`var'", "province") > 0 {
+													clonevar depart =`var'
+												}
 											}
 										}
 										
-										foreach var of varlist _all {
-											if strpos("`var'", "departement") > 0 {
-												rename `var' departement
+										////////////
+										if "`ref_code_excel'" == "ner" {
+											foreach var of varlist _all {
+												if strpos("`var'", "commune") > 0 {
+													clonevar comm=`var'
+												}
 											}
+										
+											foreach var of varlist _all {
+												if strpos("`var'", "departement") > 0 {
+													clonevar depart =`var'
+												}
+											}
+											
+											
 										}
 										
-										foreach var of varlist _all {
-											if strpos("`var'", "region") > 0 {
-												rename `var' region
+										///////////
+										
+										if "`ref_code_excel'" == "civ" {
+											foreach var of varlist _all {
+												if strpos("`var'", "commune") > 0 {
+													clonevar comm=`var'
+												}
 											}
+										
+											foreach var of varlist _all {
+												if strpos("`var'", "departement") > 0 {
+													clonevar depart =`var'
+												}
+											}
+											
+											
 										}
+										
+										////////////
+										
+										if "`ref_code_excel'" == "sen" {
+											foreach var of varlist _all {
+												if strpos("`var'", "commune") > 0 {
+													clonevar comm=`var'
+												}
+											}
+										
+											foreach var of varlist _all {
+												if strpos("`var'", "departement") > 0 {
+													clonevar depart =`var'
+												}
+											}
+											
+											
+										}
+										/////////////
+										
+										
+										
+										
 
 									
 										* definissons une liste de variable contenant les cles
-										local var_list commune  departement  region
+										local var_list comm  depart  //region_
 										
 										* creons a partir des cles, les variables qui seront traitées
 										foreach var of local var_list {
@@ -143,9 +222,9 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 										
 
 										* transformons en minuscules pour éviter les problèmes de casse
-										gen commune_clean = lower(commune_text)
-										gen departement_clean = lower(departement_text)
-										gen region_clean = lower(region_text)
+										gen commune_clean = lower(comm_text)
+										gen departement_clean = lower(depart_text)
+										//gen region_clean = lower(region_text)
 
 										// Nettoyons la variable commune_text pour supprimer les termes inutiles
 
@@ -154,13 +233,14 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 										replace commune_clean = subinstr(commune_clean, "district", "", .)
 										replace commune_clean = subinstr(commune_clean, "zone", "", .)
 
-										local var_list_clean  commune_clean departement_clean region_clean
+										local var_list_clean  commune_clean departement_clean 
 										
 										foreach var of local var_list_clean {
 										
-												// Remplacons tous les tirets(6 et 8)
+												// Remplacons tous les tirets (6 et 8) et apostrophes
 												replace `var' = regexr(`var', "-", " ")
 												replace `var' = regexr(`var', "_", " ")
+												replace `var' = ustrregexra(`var', "['?/!’]", " ")
 												
 												// Supprimons les accents dans les variables _clean
 												replace `var' = ustrregexra(`var', "[éèêë]", "e")
@@ -202,38 +282,78 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 							************************************************************************************************
 							
 							****Traitement inehrent aux pays*****
+										if "`ref_code_excel'" == "bfa" {
+														replace departement_clean = "kourittenga" if departement_clean=="kouritenga"
+														replace departement_clean = "komandjari" if departement_clean=="komandjoari"
+														replace commune_clean = "bitou" if commune_clean=="bittou"
+														replace commune_clean = "ambsouya" if commune_clean=="absouya"
+														replace commune_clean = "arbolle" if commune_clean=="arbole"
+
+														//replace commune_clean = "bobodioulasso" if commune_clean==" bobodioulassodo"
+														//replace commune_clean = "bobodioulasso" if commune_clean==" bobodioulassokonsa"
+														
+														replace commune_clean = "boken" if commune_clean=="bokin"
+														replace commune_clean = "bomborokui" if commune_clean=="bomborokuy"
+														replace commune_clean = "bondokui" if commune_clean=="bondokuy"
+														replace commune_clean = "boudri" if commune_clean=="boudry"
+														replace commune_clean = "dapeolgo" if commune_clean=="dapelogo"
+														
+														replace commune_clean = "dissihn" if commune_clean=="dissin"
+														replace commune_clean = "gounguen" if commune_clean=="gounghin"
+														replace commune_clean = "goursi" if commune_clean=="gourcy"
+														replace commune_clean = "karangassovigue" if commune_clean=="karankassovigue"
+														replace commune_clean = "kokologo" if commune_clean=="kokoloko"
+														replace commune_clean = "latoden" if commune_clean=="latodin"
+														replace commune_clean = "megue" if commune_clean=="meguet"
+														replace commune_clean = "ouri" if commune_clean=="oury"
+														replace commune_clean = "sabse" if commune_clean=="sabce"
+														replace commune_clean = "samogogouan" if commune_clean=="samorogouan"
+														replace commune_clean = "sangha" if commune_clean=="sanga"
+														replace commune_clean = "soa" if commune_clean=="soaw"
+														replace commune_clean = "tanguendassouri" if commune_clean=="tanghindassouri"
+														replace commune_clean = "zeguedeguen" if commune_clean=="zeguedeguin"
+														
+														replace commune_clean = "kassou" if commune_clean=="cassou"
+														replace commune_clean = "gbondjigui" if commune_clean=="bondigui"
+														replace departement_clean = "boulgou" if commune_clean=="tenkodogo"
+														replace commune_clean="bobodioulasso" if commune_clean=="bobodioulassodo" | commune_clean=="bobodioulassokonsa"
+														replace commune_clean = "ouagadougou" if inlist(commune, "Arrondissement 1", "Arrondissement 2", "Arrondissement 3", "Arrondissement 4", "Arrondissement 5", "Arrondissement 6")
+														replace commune_clean = "ouagadougou" if inlist(commune,"Arrondissement 7", "Arrondissement 8","Arrondissement 9", "Arrondissement 10", "Arrondissement 11", "Arrondissement 12")
+													}
+			 						**************************************************************				
 										if "`ref_code_excel'" == "ner" {
 											replace departement_clean = "magaria" if commune_clean=="dantchiao"
-											replace region_clean="zinder" if commune_clean=="dantchiao"
+											//replace region_clean="zinder" if commune_clean=="dantchiao"
 											
 											replace departement_clean = "malbaza" if commune_clean=="doguerawa"
-											replace region_clean="tahoua" if commune_clean=="doguerawa"
+											//replace region_clean="tahoua" if commune_clean=="doguerawa"
 											
 											replace departement_clean = "dogondoutchi" if commune_clean=="dogondoutchi"
-											replace region_clean="dosso" if commune_clean=="dogondoutchi"
+											//replace region_clean="dosso" if commune_clean=="dogondoutchi"
 									
 											replace departement_clean = "ouallam" if commune_clean=="tondikiwindi"
-											replace region_clean="tillaberi" if commune_clean=="tondikiwindi"
+											//replace region_clean="tillaberi" if commune_clean=="tondikiwindi"
 											
 											replace departement_clean = "mayahi" if commune_clean=="guidanamoumoune"
-											replace region_clean="madari" if commune_clean=="guidanamoumoune"
+											//replace region_clean="madari" if commune_clean=="guidanamoumoune"
 					
 											replace departement_clean = "dakoro" if commune_clean=="sabonmachi"
-											replace region_clean="madari" if commune_clean=="saesaboua"
+											//replace region_clean="madari" if commune_clean=="saesaboua"
 
 											replace departement_clean = "mirriah" if commune_clean=="dogo"
-											replace region_clean="zinder" if commune_clean=="dogo"
+											//replace region_clean="zinder" if commune_clean=="dogo"
 											
 											replace departement_clean = "tessaoua" if commune_clean=="hawandawaki"
-											replace region_clean="madari" if commune_clean=="hawandawaki"
+											//replace region_clean="madari" if commune_clean=="hawandawaki"
 											
 											replace departement_clean = "madarounfa" if commune_clean=="sarkinyamma"
-											replace region_clean="madari" if commune_clean=="sarkinyamma"
+											//replace region_clean="madari" if commune_clean=="sarkinyamma"
 
 											replace departement_clean = "dungass" if commune_clean=="dogodogo"
-											replace region_clean="zinder" if commune_clean=="dogodogo"
+											//replace region_clean="zinder" if commune_clean=="dogodogo"
 										
 										}
+										
 										************************************************
 										
 										if "`ref_code_excel'" == "civ" {
@@ -276,10 +396,54 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 
 											replace commune_clean="santa"   if commune_clean=="santadeouaninou"
 											replace commune_clean="sediogo" if commune_clean=="sediego"
-											}
+										}
 										
-										
-										
+										*******************************************************************
+											
+										if "`ref_code_excel'" == "sen" {
+											replace departement_clean = "medinayorofoula" if departement_clean=="medinayorofoulah"
+											
+											replace departement_clean = "birkilane" if departement_clean=="birkelane"
+											
+											replace departement_clean = "malemehodar" if departement_clean=="malemhoddar"
+											
+											replace departement_clean = "niorodurip" if departement_clean=="nioro"
+											
+											replace departement_clean = "ranerouferlo" if departement_clean=="ranerou"
+											
+											replace commune_clean = "bambandiayene" if commune_clean=="bambathialene"
+											replace commune_clean = "bambilor" if commune_clean=="bambylor"
+											replace commune_clean = "bemetbidjini" if commune_clean=="benetbijini"
+											replace commune_clean = "boulelgoumack" if commune_clean=="boulel"
+											replace commune_clean = "bouroucou" if commune_clean=="bourouco"
+											replace commune_clean = "gueuletapeecolobanefass" if commune_clean=="colobanefassgueuletapee"
+											replace commune_clean = "dabiaobedji" if commune_clean=="dabia"
+											replace commune_clean = "dakately" if commune_clean=="dakateli"
+											replace commune_clean = "darhoukhoudoss" if commune_clean=="daroukhoudoss"
+											replace commune_clean = "darouminameii" if commune_clean=="darouminamii"
+											replace commune_clean = "diarrere" if commune_clean=="diarere"
+											replace commune_clean = "dimboly" if commune_clean=="dimboli"
+											replace commune_clean = "dindefello" if commune_clean=="dindifelo"
+											replace commune_clean = "diembering" if commune_clean=="djembering"
+											replace commune_clean = "djinaky" if commune_clean=="djinaki"
+											replace commune_clean = "fongolimbi" if commune_clean=="fongolembi"
+											replace commune_clean = "gainthekaye" if commune_clean=="gaintekaye"
+											replace commune_clean = "keurmomarsarr" if commune_clean=="k.momarsarr"
+											replace commune_clean = "keursambakane" if commune_clean=="k.sambakane"
+											replace commune_clean = "keursaloumdiane" if commune_clean=="keurs.diane"
+											replace commune_clean = "kouthiabaouolof" if commune_clean=="kouthiabawolof"
+											replace commune_clean = "makacoulibantang" if commune_clean=="makacoulibatang"
+											replace commune_clean = "mbelacadio" if commune_clean=="mbelacadiao"
+											replace commune_clean = "medinaelhadj" if commune_clean=="medinaelhadji"
+											replace commune_clean = "montroland" if commune_clean=="montrolland"
+											replace commune_clean = "houdalaye" if commune_clean=="oudalaye"
+											
+											replace commune_clean = "prokhane" if commune_clean=="porokhane"
+											replace commune_clean = "sarecolysale" if commune_clean=="sarecolysalle"
+											replace commune_clean = "simbandibalante" if commune_clean=="simbadibalante"
+											replace commune_clean = "sinthioumaleme" if commune_clean=="sinthioumalem"
+											
+										}
 			************************************************************************************************************************************													
 										save `individu_data', replace  // Sauvegarder la version harmonisée de ehcvm_individu
 										
