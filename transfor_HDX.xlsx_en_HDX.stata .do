@@ -6,6 +6,16 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 		****************************************************************
 cd "`root_dir'"
 
+********************************************************************************
+*                         Base Benin
+********************************************************************************
+clear
+import excel "`root_dir'/BEN/ben_gadm.xlsx", cellrange(A1:P547)  firstrow
+
+save "`root_dir'/BEN/ben_gadm.dta",replace
+
+
+
  *******************************************************************************
  *									Base du Niger
  *******************************************************************************
@@ -19,7 +29,7 @@ cd "`root_dir'"
  *									Base du Senegal
  *******************************************************************************
 clear
- import excel  "`root_dir'/SEN/sen_admgz_anat_20240520.xlsx", sheet("ADM3") cellrange(A1:M126) firstrow 
+ import excel  "`root_dir'/SEN/GADM Senegal 2024.xlsx", cellrange(A1:N434) firstrow 
  
   save "`root_dir'/SEN/sen_admgz_anat_20240520.dta" , replace
 
