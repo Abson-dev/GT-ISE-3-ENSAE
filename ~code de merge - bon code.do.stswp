@@ -1,0 +1,266 @@
+		***************************************************************************
+				// 1. Définition les chemins de base et le répertoire de sortie
+				
+local root_dir "C:\Users\AHema\OneDrive - CGIAR\Desktop\Cours\2025\ENSAE\GT ISE 3 ENSAE\00_Data\00_INPUTS"  
+local output_dir "C:\Users\AHema\OneDrive - CGIAR\Desktop\Cours\2025\ENSAE\GT ISE 3 ENSAE\00_Data\01_OUTPUTS\00_EHCVM" 
+		****************************************************************
+	cd "`root_dir'/03_SHAPEFILES"
+    local folders : dir . dirs "*"
+
+    foreach folder of local folders {	
+****************************************************************
+			// 2. Boucle sur les fichiers Excel dans le dossier HDX
+	
+			// Accédons au sous-dossier correspondant
+            cd "`root_dir'/03_SHAPEFILES/`folder'"
+			local excel_files : dir . files "*.xlsx"
+
+			foreach excel_file of local excel_files {
+				// Extraction les trois premiers caractères du nom du fichier Excel
+				local ref_code_excel = lower(substr("`excel_file'", 1, 3))
+				
+				// Importation la feuille spécifique du fichier Excel dans Stata avec la première ligne comme en-tête
+			   
+				import excel using "`excel_file'", sheet("ADM3") cellrange(A1:M267) firstrow clear
+				tempfile excel_data
+				save `excel_data', replace
+
+				// Harmoniser les variables clés dans la base Excel importée
+			 
+				gen commune_clean = lower(ADM3_FR)   // pour cle de commune
+				gen departement_clean = lower(ADM2_FR) // pour cle de departement
+				gen region_clean = lower(ADM1_FR)  //  pour cle de region
+				
+				replace commune_clean = ustrregexra(commune_clean, "[éèêë]", "e")
+				replace departement_clean = ustrregexra(departement_clean, "[éèêë]", "e")
+				replace region_clean = ustrregexra(region_clean, "[éèêë]", "e")
+										
+				replace commune_clean = ustrregexra(commune_clean, "[àâä]", "a")
+				replace departement_clean = ustrregexra(departement_clean, "[àâä]", "a")
+				replace region_clean = ustrregexra(region_clean, "[àâä]", "a")
+										
+				replace commune_clean = ustrregexra(commune_clean, "[îï]", "i")
+				replace departement_clean = ustrregexra(departement_clean, "[îï]", "i")
+				replace region_clean = ustrregexra(region_clean, "[îï]", "i")
+											
+				replace commune_clean = ustrregexra(commune_clean, "[ôö]", "o")
+				replace departement_clean = ustrregexra(departement_clean, "[ôö]", "o")
+				replace region_clean = ustrregexra(region_clean, "[ôö]", "o")
+										
+				replace commune_clean = ustrregexra(commune_clean, "[ùûü]", "u")
+				replace departement_clean = ustrregexra(departement_clean, "[ùûü]", "u")
+				replace region_clean = ustrregexra(region_clean, "[ùûü]", "u")
+										
+				replace commune_clean = ustrregexra(commune_clean, "[ç]", "c")
+				replace departement_clean = ustrregexra(departement_clean, "[ç]", "c")
+				replace region_clean = ustrregexra(region_clean, "[ç]", "c")
+
+				// Remplacer tous les tirets, parenthèses, et autres caractères spéciaux
+				replace commune_clean = regexr(commune_clean, "-", " ")
+				replace departement_clean = regexr(departement_clean, "-", " ")
+				replace region_clean = regexr(region_clean, "-", " ")
+				
+				// Harmonisation des numéros en fin de chaîne de caractères
+				replace commune_clean = subinstr(commune_clean, " 1", "i", .)
+				replace commune_clean = subinstr(commune_clean, " 2", "ii", .)
+				replace commune_clean = subinstr(commune_clean, " 3", "iii", .)
+				replace commune_clean = subinstr(commune_clean, " 4", "iv", .)
+				replace commune_clean = subinstr(commune_clean, " 5", "v", .)
+			   
+				save `excel_data', replace  // Sauvegarder la version harmonisée
+				
+					****************************************************************************
+						// 3. Parcourons les sous-dossiers de "00_EHCVM" à la recherche de ehcvm_individu
+						
+				cd "`root_dir'/00_EHCVM"
+				local subfolders : dir . dirs "*"
+
+				foreach subfolder of local subfolders {
+					// Extraction les trois premiers caractères du sous-dossier
+					local ref_code_folder = lower(substr("`subfolder'", 1, 3))
+
+					// Vérifions la correspondance des codes
+					if "`ref_code_excel'" == "`ref_code_folder'" {
+						// Accédons au sous-dossier correspondant
+						cd "`root_dir'/00_EHCVM/`subfolder'"
+						local inner_folders : dir . dirs "*"
+
+						foreach inner_folder of local inner_folders {
+							local ref_code_inner = lower(substr("`inner_folder'", 1, 3))
+
+							if "`ref_code_excel'" == "`ref_code_inner'" {
+								// Parcourons les fichiers Stata dans le sous-sous-dossier trouvé
+								cd "`root_dir'/00_EHCVM/`subfolder'/`inner_folder'"
+								local stata_files : dir . files "*.dta"
+
+								foreach stata_file of local stata_files {
+									if strpos("`stata_file'", "ehcvm_individu") {
+										// Importons la base "individu"
+										use "`root_dir'/00_EHCVM/`subfolder'/`inner_folder'/`stata_file'", clear
+										tempfile individu_data
+										save `individu_data', replace
+										
+										** Recherchons  les variables contenant "commune, departement, region" et renommer
+										
+										foreach var of varlist _all {
+											if strpos("`var'", "commune") > 0 {
+												rename `var' commune
+											}
+										}
+										
+										foreach var of varlist _all {
+											if strpos("`var'", "departement") > 0 {
+												rename `var' departement
+											}
+										}
+										
+										foreach var of varlist _all {
+											if strpos("`var'", "region") > 0 {
+												rename `var' region
+											}
+										}
+
+									
+										// Transformons les variable `commune`, `departement`, et `region` de codes numériques à labels textuels
+										decode commune, gen(commune_text)  // Crée `commune_text` avec les labels textuels
+										decode departement, gen(departement_text)  // Crée `departement_text` avec les labels textuels
+										decode region, gen(region_text)  // Crée `region_text` avec les labels textuels
+										
+										
+
+										* transformons en minuscules pour éviter les problèmes de casse
+										gen commune_clean = lower(commune_text)
+										gen departement_clean = lower(departement_text)
+										gen region_clean = lower(region_text)
+
+										// Nettoyons la variable commune_text pour supprimer les termes inutiles
+
+										replace commune_clean = subinstr(commune_clean, "arrondissement", "", .)
+										replace commune_clean = subinstr(commune_clean, "bloc", "", .)
+										replace commune_clean = subinstr(commune_clean, "district", "", .)
+										replace commune_clean = subinstr(commune_clean, "zone", "", .)
+
+										// Remplacons tous les tirets, parenthèses, et autres caractères spéciaux
+										replace commune_clean = regexr(commune_clean, "-", " ")
+										replace departement_clean = regexr(departement_clean, "-", " ")
+										replace region_clean = regexr(region_clean, "-", " ")
+										
+										
+										// Supprimons les accents dans les variables _clean
+										replace commune_clean = ustrregexra(commune_clean, "[éèêë]", "e")
+										replace departement_clean = ustrregexra(departement_clean, "[éèêë]", "e")
+										replace region_clean = ustrregexra(region_clean, "[éèêë]", "e")
+
+										replace commune_clean = ustrregexra(commune_clean, "[àâä]", "a")
+										replace departement_clean = ustrregexra(departement_clean, "[àâä]", "a")
+										replace region_clean = ustrregexra(region_clean, "[àâä]", "a")
+										
+										replace commune_clean = ustrregexra(commune_clean, "[îï]", "i")
+										replace departement_clean = ustrregexra(departement_clean, "[îï]", "i")
+										replace region_clean = ustrregexra(region_clean, "[îï]", "i")
+											
+										replace commune_clean = ustrregexra(commune_clean, "[ôö]", "o")
+										replace departement_clean = ustrregexra(departement_clean, "[ôö]", "o")
+										replace region_clean = ustrregexra(region_clean, "[ôö]", "o")
+										
+										replace commune_clean = ustrregexra(commune_clean, "[ùûü]", "u")
+										replace departement_clean = ustrregexra(departement_clean, "[ùûü]", "u")
+										replace region_clean = ustrregexra(region_clean, "[ùûü]", "u")
+										
+										replace commune_clean = ustrregexra(commune_clean, "[ç]", "c")
+										replace departement_clean = ustrregexra(departement_clean, "[ç]", "c")
+										replace region_clean = ustrregexra(region_clean, "[ç]", "c")
+
+										// Remplacons les chiffres en fin de chaîne par des numéros romains
+										replace commune_clean = subinstr(commune_clean, " 1", "i", .)
+										replace commune_clean = subinstr(commune_clean, " 2", "ii", .)
+										replace commune_clean = subinstr(commune_clean, " 3", "iii", .)
+										replace commune_clean = subinstr(commune_clean, " 4", "iv", .)
+										replace commune_clean = subinstr(commune_clean, " 5", "v", .)
+										
+										
+										* Extraction les noms de commune, département et région sans les informations entre parenthèses
+										* Identifions la position de la parenthèse ouvrante
+										gen pos_paren1 = strpos(commune_clean, "(")
+										gen pos_paren2 = strpos(departement_clean, "(")
+										gen pos_paren3 = strpos(region_clean, "(")
+										
+										* Gardons uniquement le texte avant la parenthèse ouvrante, si elle existe
+										replace commune_clean = substr(commune_clean, 1, pos_paren1 - 1) if pos_paren1 > 0
+										replace departement_clean = substr(departement_clean, 1, pos_paren2 - 1) if pos_paren2 > 0
+										replace region_clean = substr(region_clean, 1, pos_paren3 - 1) if pos_paren3 > 0
+										* Supprimons les espaces en trop
+										replace commune_clean = trim(commune_clean)
+										replace departement_clean = trim(departement_clean)
+										replace region_clean = trim(region_clean)
+									
+										* Supprimons la variable temporaire utilisée pour la position de la parenthèse
+										drop pos_paren1  pos_paren2  pos_paren3
+										
+
+							************************************************************************************************			
+										replace departement_clean = "magaria" if commune_clean=="dantchiao"
+										replace region_clean="zinder" if commune_clean=="dantchiao"
+										
+										replace departement_clean = "malbaza" if commune_clean=="doguerawa"
+										replace region_clean="tahoua" if commune_clean=="doguerawa"
+										
+										replace departement_clean = "dogondoutchi" if commune_clean=="dogondoutchi"
+										replace region_clean="dosso" if commune_clean=="dogondoutchi"
+								
+										replace departement_clean = "ouallam" if commune_clean=="tondikiwindi"
+										replace region_clean="tillaberi" if commune_clean=="tondikiwindi"
+										
+										*replace departement_clean = "guidan roumdji" if commune_clean=="chadakori"
+									
+										*replace departement_clean = "guidan roumdji" if commune_clean=="guidan roumdji"
+										*replace region_clean="madari" if commune_clean=="guidan roumdji"
+										
+										replace departement_clean = "mayahi" if commune_clean=="guidan amoumoune"
+										replace region_clean="madari" if commune_clean=="guidan amoumoune"
+				
+										*replace departement_clean = "guidan roumdji" if commune_clean=="guidan sori"
+										*replace region_clean="madari" if commune_clean=="guidan sori"
+				
+										*replace departement_clean = "guidan roumdji" if commune_clean=="sae saboua"
+										*replace region_clean="madari" if commune_clean=="sae saboua"
+				
+										replace departement_clean = "dakoro" if commune_clean=="sabon machi"
+										replace region_clean="madari" if commune_clean=="sae saboua"
+
+										replace departement_clean = "mirriah" if commune_clean=="dogo"
+										replace region_clean="zinder" if commune_clean=="dogo"
+										
+										replace departement_clean = "tessaoua" if commune_clean=="hawandawaki"
+										replace region_clean="madari" if commune_clean=="hawandawaki"
+										
+										replace departement_clean = "madarounfa" if commune_clean=="sarkin yamma"
+										replace region_clean="madari" if commune_clean=="sarkin yamma"
+
+										replace departement_clean = "dungass" if commune_clean=="dogo dogo"
+										replace region_clean="zinder" if commune_clean=="sarkin yamma"
+										
+			************************************************************************************************************************************													
+										save `individu_data', replace  // Sauvegarder la version harmonisée de ehcvm_individu
+										
+										// 5. MERGE AVEC LES AUTRES BASES ehcvm_menage et ehcvm_welfare DU DOSSIER INPUT
+											
+									*************************************************************************************************	
+										
+										// 6. MERGE DE LA BASE HARMONISEE EHCVM AVEC LA BASE HDX NETTOYEE
+										
+										use `individu_data', clear
+										merge m:1 departement_clean commune_clean   using `excel_data', keep(1 3) 
+										
+								   ****************************************************************************************************
+
+										// 7. SAUVEGARDER LA BASE FINALE OBTENUE
+										save "`output_dir'/`folder'/ehcvm_individu_`ref_code_excel'2021_hdx.dta", replace
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
