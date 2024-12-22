@@ -1,16 +1,16 @@
-
+clear all
 	// 1. Définition les chemins de base et le répertoire de sortie
 				
 local root_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/00_INPUTS/03_SHAPEFILES"  
 local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/01_OUTPUTS/00_EHCVM"  
 		****************************************************************
-cd "`root_dir'"
+
 
 ********************************************************************************
 *                         Base Benin
 ********************************************************************************
-clear
-import excel "`root_dir'/BEN/ben_gadm.xlsx", cellrange(A1:P547)  firstrow
+
+import excel "`root_dir'/BEN/ben_gadm.xlsx", sheet("gadm41_ben_3") cellrange(A1:P547) firstrow
 
 save "`root_dir'/BEN/ben_gadm.dta",replace
 
@@ -45,5 +45,19 @@ clear
  * 										Togo
  *************************************************************************************
  clear
+import excel "`root_dir'/TGO/tgo_adminboundaries_tabulardata.xlsx", sheet("ADM2") firstrow
+  
+save "`root_dir'/TGO/tgo_adminboundaries_tabulardata.dta", replace
+**********************************************************************************
+*                            Base du Mali
+**********************************************************************************
+clear
+/*
+import excel "`root_dir'/MLI/mli_adminboundaries_tabulardata.xlsx", sheet("Admin3") cellrange(A1:R702) firstrow
 
+save "`root_dir'/MLI/mli_adminboundaries_tabulardata.dta", replace
+*/
 
+import excel "`root_dir'/MLI/MLI_gadm.xlsx", sheet("gadm41_mli_4") cellrange(A1:N705) firstrow
+
+save "`root_dir'/MLI/MLI_gadm.dta", replace
