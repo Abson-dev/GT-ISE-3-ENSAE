@@ -566,7 +566,7 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 							*****************************************************************************************************
 										
 										if "`ref_code_excel'" == "mli" {
-											replace departement_clean = "bamako" if commune_clean=="districtdebamako"	
+											replace departement_clean = "bamako" if departement_clean=="districtdebamako"	
 											replace commune_clean = "anderamboukane" if inlist(commune_clean,"anderanboukane","anderaboukane")
 											replace commune_clean="menaka" if commune_clean=="communedemenaka"
 											replace departement_clean="gourmarharous" if departement_clean=="gourmarha"
@@ -581,6 +581,24 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 											replace commune_clean="niorocommune" if commune_clean=="nioro"
 											replace commune_clean="niamananar" if commune_clean=="niamanadenara"
 											replace commune_clean="ouattagouna" if commune_clean=="ouattagoun" 
+											replace commune_clean="anderamboukane" if inlist(commune,"Anouzagrene kal talataye","Anouzagrene kal talaytette")
+											replace commune_clean="baguineda" if commune_clean=="baguinedacamp" 
+											replace commune_clean="banicane" if commune_clean=="banikane" 
+											replace commune_clean="baraoueli" if commune_clean=="baroueli" 
+											replace commune_clean="bayeken" if commune_clean=="baye" 
+											replace commune_clean="ansongo" if commune_clean=="commune" & departement_clean=="ansongo"
+											replace commune_clean="derrary" if commune_clean=="derary" & departement_clean=="djenne"
+											replace commune_clean="dougoutene2" if commune_clean=="dougouteneii" & departement_clean=="koro"
+											replace commune_clean="fakaladje" if commune_clean=="fakala" 
+											replace commune_clean="fakolakol" if commune_clean=="fakola" 
+											replace commune_clean="fakolakou" if commune_clean=="fakolo" 
+											replace commune_clean="farabakat" if commune_clean=="faraba" 
+											replace commune_clean="farakoseg" if commune_clean=="farakodesegou" 
+											replace commune_clean="gadougou2" if commune_clean=="gadougouii" 
+											replace commune_clean="rharous" if inlist(commune_clean,"gourmararousse","gourmaras")
+											replace departement_clean="dire" if commune_clean=="haibongo" 
+											
+											
 											
 											
 											}
