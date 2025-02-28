@@ -591,16 +591,23 @@ local output_dir "C:/Users/Administrator/Desktop/GT2025/GT-ISE-3-ENSAE/00_Data/0
 											replace commune_clean="dougoutene2" if commune_clean=="dougouteneii" & departement_clean=="koro"
 											replace commune_clean="fakaladje" if commune_clean=="fakala" 
 											replace commune_clean="fakolakol" if commune_clean=="fakola" 
-											replace commune_clean="fakolakou" if commune_clean=="fakolo" 
+											replace commune_clean="fakolokou" if commune_clean=="fakolo" 
 											replace commune_clean="farabakat" if commune_clean=="faraba" 
 											replace commune_clean="farakoseg" if commune_clean=="farakodesegou" 
 											replace commune_clean="gadougou2" if commune_clean=="gadougouii" 
 											replace commune_clean="rharous" if inlist(commune_clean,"gourmararousse","gourmaras")
 											replace departement_clean="dire" if commune_clean=="haibongo" 
 											
+											replace commune_clean="tinessako" if inlist(commune_clean,"intadjedite" ,"intedjedite")
+											replace departement_clean="kayescommune" if commune_clean=="kayes" 
+											replace departement_clean="kitanord" if commune_clean=="kita"
+											replace departement_clean="koulatom" if commune_clean=="kouladetominian"
+											replace departement_clean="koulogonhabe" if commune_clean=="koulogonh"
+											replace departement_clean="kourounikoto" if commune_clean=="kourouninkoto"
+											replace departement_clean="marekaffo" if commune_clean=="marekafo"
+											replace departement_clean="ngabacorodroit" if commune_clean=="ngabacoro"
 											
-											
-											
+											replace departement_clean="souboundou" if commune_clean=="niafunke"
 											}
 							******************************************************************************************************
 										
