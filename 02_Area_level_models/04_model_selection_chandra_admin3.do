@@ -8,11 +8,11 @@ set seed 648743
 *===============================================================================
 //Specify team paths 
 *===============================================================================
-global main          "C:\Users\AHema\OneDrive - CGIAR\Desktop\Poverty Mapping\Small area estimation\Burkina Faso\Application of Fay-Herriot Model for Burkina Faso\00.Data"
-global data_input       	"$main\00_Inputs\EHCVM data\BFA_2021_EHCVM-P_v02_M_Stata"
-global data_output       	"$main\01_Outputs"
-global figs        "C:\Users\AHema\OneDrive - CGIAR\Desktop\Poverty Mapping\Small area estimation\Burkina Faso\Application of Fay-Herriot Model for Burkina Faso\02.Area_level_models\04.graphics"
+* Configuration initiale
+global dir1 "C:\Users\Administrator\Desktop\GT2025\GT-ISE-3-ENSAE\00_Data\01_OUTPUTS\00_EHCVM"
 
+* Chargement des données
+use "$dir1\BFA\total_vardatabae_bfa2021.dta", clear
 
 mata
 	//Mata function for selection
@@ -32,9 +32,9 @@ mata
 
 end
 
-
-use "$data_output\commune_survey_ehcvm_bfa_2021.dta", clear
-
+gen dir_fgt0_var=fgt0_var
+//use "$data_output\commune_survey_ehcvm_bfa_2021.dta", clear
+/*
 sort adm3_pcode
 quietly by adm3_pcode:  gen dup = cond(_N==1,0,_n)
 
@@ -148,8 +148,8 @@ drop dummy_ei_battles  dummy
 *===============================================================================
 //FH Estimation
 *===============================================================================
-
-foreach x of varlist geo_* acled_* ham_2019_* haw_2019_* ttc_2015_* pf_parasite_rate_* pf_mortality_rate_*  night_* buildings_* {
+*/
+foreach x of varlist *_TRAVEL_TIME_* PF_PARASITE_RATE_* PF_MORTALITY_RATE_* SCALE_* OFFSET_*  POPULATION_BFA_2020  POPULATION_DENSITY_BFA_2020   *_SCHOOL_AGE_GIRL* UI_* NDVI_* SAVI_* OSAVI_* NDSI_* SR_* NBAI_* NDMI_* VARI_* BRBA_* MNDWI_* EVI_* ARVI_* CDI_* region_* {
 	gen `x'2 = `x' * `x'
 }
 
@@ -164,7 +164,7 @@ foreach x of local vars{
 }
 
 */
-local vars geo_* ham_2019_* haw_2019_* ttc_2015_* pf_parasite_rate_* pf_mortality_rate_*  night_* acled_cdi_* acled_ei_* buildings_* adm1_pcode_1-adm1_pcode_13 
+local vars *_TRAVEL_TIME_* PF_PARASITE_RATE_* PF_MORTALITY_RATE_* SCALE_* OFFSET_*  POPULATION_BFA_2020  POPULATION_DENSITY_BFA_2020   *_SCHOOL_AGE_GIRL* UI_* NDVI_* SAVI_* OSAVI_* NDSI_* SR_* NBAI_* NDMI_* VARI_* BRBA_* MNDWI_* EVI_* ARVI_* CDI_* region_*
 
 unab hhvars: `vars'
 
@@ -173,14 +173,15 @@ unab hhvars: `vars'
 //Create smoothed variance function
 *===============================================================================
 //replace dir_fgt0_var = 0.0001 if dir_fgt0_var ==. & (fgt0 == 0 | fgt0 == 1)
+
 gen log_s2 = log(dir_fgt0_var)
-gen logN = log(N)
-gen logN2 = logN^2
-gen logpop  = log(Worlpop_population)
+//gen logN = log(N)
+//gen logN2 = logN^2
+gen logpop  = log(POPULATION_BFA_2020)
 //pop
 gen logpop2 = logpop^2
 
-gen share = log(N_hhsize/Worlpop_population)
+gen share = log(region_hhsize/POPULATION_BFA_2020)
 reg log_s2 share, r
 local phi2 = e(rmse)^2
 cap drop xb_fh
@@ -196,9 +197,15 @@ local sump = r(sum)
 //Below comes from: https://presidencia.gva.es/documents/166658342/168130165/Ejemplar+45-01.pdf/fb04aeb3-9ea6-441f-a15c-bc65e857d689?t=1557824876209#page=107
 gen smoothed_var = exp_xb_fh*(`sumvar'/`sump') 
 
+/*
 //Modified to only replace for the locations with 0 variance
 replace dir_fgt0_var = smoothed_var if ((num_ea>1 & !missing(num_ea)) | (num_ea==1 & zero!=0 & zero!=1)) & missing(dir_fgt0_var)
 replace dir_fgt0 = zero if !missing(dir_fgt0_var)
+*/
+replace dir_fgt0_var = . if dir_fgt0_var == 0
+replace dir_fgt0 = . if missing(dir_fgt0_var)
+
+
 
 fhsae dir_fgt0 `hhvars', revar(dir_fgt0_var) method(chandra)
 
